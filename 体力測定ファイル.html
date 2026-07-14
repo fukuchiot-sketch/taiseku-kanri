@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>体力測定管理アプリ（試作）</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-soft:#f4f7f6;
+    --ink:#1f2d2b;
+    --ink-soft:#5b6b68;
+    --line:#dbe4e1;
+    --brand:#2f7a63;
+    --brand-dark:#245e4c;
+    --good:#2f7a63;
+    --bad:#c0503f;
+    --flat:#8a8a86;
+    --danger:#c0503f;
+    --warn:#a06a1f;
+    --radius:14px;
+    --font-size-base:19px;
+  }
+  *{box-sizing:border-box;}
+  html{
+    margin:0;
+    padding:0;
+    min-height:100%;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  body{
+    margin:0;
+    padding:0;
+    min-height:100dvh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    font-family:"Hiragino Sans","Yu Gothic","Segoe UI",sans-serif;
+    background:var(--bg-soft);
+    color:var(--ink);
+    font-size:var(--font-size-base);
+    line-height:1.6;
+  }
+  header{
+    background:var(--brand-dark);
+    color:#fff;
+    padding:18px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header h1{font-size:22px;margin:0;font-weight:700;}
+  nav{display:flex;gap:8px;flex-wrap:wrap;}
+  nav button{
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.4);
+    color:#fff;
+    padding:10px 16px;
+    border-radius:10px;
+    font-size:16px;
+    cursor:pointer;
+  }
+  nav button.active{background:#fff;color:var(--brand-dark);font-weight:700;}
+  main{
+    max-width:980px;
+    margin:0 auto;
+    padding:20px;
+    padding-bottom:max(300px, 45vh);
+    min-height:100dvh;
+    overflow:visible;
+  }
+  .card{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px;
+    margin-bottom:18px;
+  }
+  .card h2{margin-top:0;font-size:20px;color:var(--brand-dark);}
+  .btn{
+    display:inline-block;
+    padding:14px 22px;
+    font-size:18px;
+    border-radius:12px;
+    border:none;
+    cursor:pointer;
+    font-weight:700;
+    text-align:center;
+  }
+  .btn-primary{background:var(--brand);color:#fff;}
+  .btn-primary:hover{background:var(--brand-dark);}
+  .btn-secondary{background:#fff;color:var(--brand);border:2px solid var(--brand);}
+  .btn-secondary:hover{background:var(--bg-soft);}
+  .btn-danger{background:#fff;color:var(--danger);border:2px solid var(--danger);}
+  .btn-danger:hover{background:#fdecec;}
+  .btn-flat{background:var(--bg-soft);color:var(--ink);border:1px solid var(--line);}
+  .btn-sm{padding:9px 14px;font-size:15px;border-radius:9px;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:700;margin-bottom:6px;font-size:16px;}
+  .field .hint{font-size:14px;color:var(--ink-soft);margin-top:4px;}
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    width:100%;
+    padding:14px;
+    font-size:18px;
+    border:2px solid var(--line);
+    border-radius:10px;
+    font-family:inherit;
+    background:#fff;
+    color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:3px solid #9cc9bb;
+    border-color:var(--brand);
+  }
+  textarea{min-height:80px;resize:vertical;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:640px){
+    .grid2{
+      grid-template-columns:1fr;
+    }
+    main{
+      padding:14px;
+      padding-bottom:max(350px, 55vh);
+    }
+    .card{
+      padding:18px 14px;
+    }
+    input,
+    select,
+    textarea{
+      scroll-margin-bottom:300px;
+    }
+  }
+  .table-wrap{width:100%;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;min-width:520px;}
+  th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:17px;}
+  th{background:var(--bg-soft);font-weight:700;color:var(--brand-dark);}
+  tr:hover td{background:#f8fbfa;}
+  .search-box{margin-bottom:14px;}
+  .empty{padding:30px;text-align:center;color:var(--ink-soft);}
+  .pill{
+    display:inline-block;padding:4px 10px;border-radius:20px;
+    font-size:14px;font-weight:700;background:var(--bg-soft);color:var(--ink-soft);
+  }
+  .compare-table td{font-size:18px;}
+  .diff-up{color:var(--good);font-weight:700;}
+  .diff-down{color:var(--bad);font-weight:700;}
+  .diff-flat{color:var(--flat);font-weight:700;}
+  .badge{
+    display:inline-block;padding:5px 12px;border-radius:8px;font-weight:700;font-size:15px;
+  }
+  .badge-good{background:#e5f3ee;color:var(--good);}
+  .badge-bad{background:#fbe9e6;color:var(--bad);}
+  .badge-flat{background:#eeeeec;color:var(--flat);}
+  .badge-neutral{background:#eef2fb;color:#3a5aa6;}
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(20,30,28,0.45);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .modal{
+    background:#fff;border-radius:16px;padding:26px;max-width:480px;width:100%;
+    max-height:86vh;overflow-y:auto;
+  }
+  .modal h3{margin-top:0;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--brand-dark);color:#fff;padding:14px 22px;border-radius:10px;
+    font-size:16px;z-index:60;box-shadow:0 4px 14px rgba(0,0,0,0.2);
+  }
+  .section-title{font-size:17px;font-weight:700;color:var(--brand-dark);margin:22px 0 10px;border-left:5px solid var(--brand);padding-left:10px;}
+  .muted{color:var(--ink-soft);font-size:15px;}
+  .icon-btn{background:none;border:none;cursor:pointer;font-size:20px;color:var(--ink-soft);}
+  .warn-box{
+    background:#fdf3e2;border:1px solid #edcf95;color:var(--warn);
+    padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:15px;
+  }
+  .error-box{
+    background:#fbe9e6;border:1px solid #e3a99b;color:var(--danger);
+    padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:15px;font-weight:700;
+  }
+  .comment-box{
+    background:var(--bg-soft);border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin-bottom:12px;font-size:16px;white-space:pre-wrap;
+  }
+  .print-only-header{display:none;}
+  .print-only-comment{display:none;white-space:pre-wrap;}
+
+  @media print{
+    body{background:#fff;font-size:13px;line-height:1.5;}
+    header, nav, .no-print{display:none !important;}
+    main{max-width:100%;padding:0;margin:0;}
+    .card{border:none;padding:0;margin:0 0 10px 0;border-radius:0;}
+    .print-only-header{display:block;margin-bottom:8px;}
+    .print-only-header h2{margin:0 0 4px 0;font-size:18px;}
+    .print-only-header p{margin:2px 0;font-size:13px;}
+    .print-only-comment{display:block;font-size:13px;background:#f4f7f6;padding:8px;border-radius:6px;}
+    table{min-width:0;}
+    th,td{padding:6px 8px;font-size:12px;}
+    canvas{max-width:100% !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>体力測定管理（試作）</h1>
+  <nav id="nav">
+    <button data-screen="list" class="active">利用者一覧</button>
+  </nav>
+</header>
+
+<main id="app"></main>
+
+<div id="modal-root"></div>
+
+<script>
+/* ==========================================================
+   データ層（localStorage） — 既存キーは変更しない
+   ========================================================== */
+const DB = {
+  KEY_USERS: "taiseku_users_v1",
+  KEY_RECORDS: "taiseku_records_v1",
+  KEY_FACILITY: "taiseku_facility_name_v1",
+  _usersCorrupted: false,
+  _recordsCorrupted: false,
+
+  getUsers(){
+    try{
+      const raw = localStorage.getItem(this.KEY_USERS);
+      if(!raw) return [];
+      const parsed = JSON.parse(raw);
+      if(!Array.isArray(parsed)){
+        this._usersCorrupted = true;
+        return [];
+      }
+      return parsed;
+    }catch(e){
+      this._usersCorrupted = true;
+      return [];
+    }
+  },
+  saveUsers(users){
+    localStorage.setItem(this.KEY_USERS, JSON.stringify(users));
+  },
+  getRecords(){
+    try{
+      const raw = localStorage.getItem(this.KEY_RECORDS);
+      if(!raw) return [];
+      const parsed = JSON.parse(raw);
+      if(!Array.isArray(parsed)){
+        this._recordsCorrupted = true;
+        return [];
+      }
+      return parsed;
+    }catch(e){
+      this._recordsCorrupted = true;
+      return [];
+    }
+  },
+  saveRecords(records){
+    localStorage.setItem(this.KEY_RECORDS, JSON.stringify(records));
+  },
+  isDataHealthy(){
+    return !this._usersCorrupted && !this._recordsCorrupted;
+  },
+  _guard(){
+    if(!this.isDataHealthy()){
+      alert("保存データの読み込みに失敗しているため、この操作は行えません。データを上書きしないよう操作を中止しました。管理者にご確認ください。");
+      return false;
+    }
+    return true;
+  },
+  addUser(user){
+    if(!this._guard()) return null;
+    const users = this.getUsers();
+    user.id = "u_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+    users.push(user);
+    this.saveUsers(users);
+    return user;
+  },
+  updateUser(id, patch){
+    if(!this._guard()) return;
+    const users = this.getUsers();
+    const idx = users.findIndex(u=>u.id===id);
+    if(idx>-1){ users[idx] = {...users[idx], ...patch}; this.saveUsers(users); }
+  },
+  deleteUser(id){
+    if(!this._guard()) return;
+    this.saveUsers(this.getUsers().filter(u=>u.id!==id));
+    this.saveRecords(this.getRecords().filter(r=>r.userId!==id));
+  },
+  getUser(id){
+    return this.getUsers().find(u=>u.id===id);
+  },
+  addRecord(record){
+    if(!this._guard()) return null;
+    const records = this.getRecords();
+    const now = Date.now();
+    record.id = "r_" + now + "_" + Math.floor(Math.random()*1000);
+    record.createdAt = now;
+    record.updatedAt = now;
+    if(record.autoComment===undefined) record.autoComment = "";
+    if(record.finalComment===undefined) record.finalComment = "";
+    records.push(record);
+    this.saveRecords(records);
+    return record;
+  },
+  updateRecord(id, patch){
+    if(!this._guard()) return;
+    const records = this.getRecords();
+    const idx = records.findIndex(r=>r.id===id);
+    if(idx>-1){
+      records[idx] = {...records[idx], ...patch, updatedAt: Date.now()};
+      this.saveRecords(records);
+    }
+  },
+  deleteRecord(id){
+    if(!this._guard()) return;
+    this.saveRecords(this.getRecords().filter(r=>r.id!==id));
+  },
+  // 既存記録にcreatedAtがない場合でもエラーにならないよう、idからタイムスタンプを推定
+  recordTimestamp(r){
+    if(r.createdAt) return r.createdAt;
+    if(r.id){
+      const parts = r.id.split("_");
+      if(parts.length>1){
+        const t = parseInt(parts[1],10);
+        if(!isNaN(t)) return t;
+      }
+    }
+    return 0;
+  },
+  recordOrderKey(r){
+    return r.date + "_" + String(this.recordTimestamp(r)).padStart(20,"0");
+  },
+  getRecordsForUser(userId){
+    // 測定日が同じ場合でも表示順が安定するよう、日付→作成日時の順で並べる（新しい順）
+    return this.getRecords()
+      .filter(r=>r.userId===userId)
+      .sort((a,b)=> this.recordOrderKey(b) < this.recordOrderKey(a) ? -1 : (this.recordOrderKey(b) > this.recordOrderKey(a) ? 1 : 0));
+  },
+  // dateStr時点（tiebreakTimestampで作成順を判定）より前の直近の記録を取得する
+  getPreviousRecord(userId, dateStr, excludeId, tiebreakTimestamp){
+    const refTs = tiebreakTimestamp ?? Date.now();
+    const refKey = dateStr + "_" + String(refTs).padStart(20,"0");
+    const candidates = this.getRecordsForUser(userId).filter(r=> r.id !== excludeId);
+    for(const r of candidates){
+      if(this.recordOrderKey(r) < refKey) return r;
+    }
+    return null;
+  },
+  getFacilityName(){
+    return localStorage.getItem(this.KEY_FACILITY) || "";
+  },
+  setFacilityName(name){
+    localStorage.setItem(this.KEY_FACILITY, name);
+  }
+};
+
+/* ==========================================================
+   測定項目の定義（後から項目追加しやすいよう一箇所に集約）
+   direction: "higher" = 高い方が良い / "lower" = 低い方が良い / "neutral" = 判定しない
+   min はHTMLのmin属性にも使用。max は保存時の警告用の目安であり、HTMLのmax属性には設定しない。
+   ========================================================== */
+const MEASURE_FIELDS = [
+  { key:"gripRight",   label:"握力 右",         unit:"kg", direction:"higher", step:0.1, min:0,   max:100, hardNoNegative:true },
+  { key:"gripLeft",    label:"握力 左",         unit:"kg", direction:"higher", step:0.1, min:0,   max:100, hardNoNegative:true },
+  { key:"sitReach",    label:"長座体前屈",       unit:"cm", direction:"higher", step:0.1, min:-50, max:100, hardNoNegative:false },
+  { key:"balanceRight",label:"開眼片脚立位 右", unit:"秒", direction:"higher", step:0.1, min:0,   max:180, hardNoNegative:true },
+  { key:"balanceLeft", label:"開眼片脚立位 左", unit:"秒", direction:"higher", step:0.1, min:0,   max:180, hardNoNegative:true },
+  { key:"tug",         label:"TUG",             unit:"秒", direction:"lower",  step:0.1, min:0,   max:120, hardNoNegative:true },
+  { key:"weight",      label:"体重",            unit:"kg", direction:"neutral",step:0.1, min:0,   max:300, mustBePositive:true },
+  { key:"bmi",         label:"BMI",             unit:"",   direction:"neutral",step:0.1, computed:true },
+];
+
+// 評価コメントの改善・低下判定に使うカテゴリー（体重・BMIは対象外）
+// 右・左をそのまま列挙せず、家族にも分かりやすいカテゴリー名でまとめる
+const COMMENT_CATEGORIES = [
+  { id:"grip",    keys:["gripRight","gripLeft"],       label:"握力",
+    declineText:"握力に低下がみられています。今後も上肢を使う活動や運動を継続し、身体機能の維持に取り組んでいきます。" },
+  { id:"flex",    keys:["sitReach"],                   label:"柔軟性",
+    declineText:"柔軟性に低下がみられています。今後も無理のない範囲でストレッチを継続していきます。" },
+  { id:"balance", keys:["balanceRight","balanceLeft"], label:"バランス能力",
+    declineText:"バランス能力に低下がみられています。立位練習や下肢機能訓練を継続し、転倒予防に取り組んでいきます。" },
+  { id:"tug",     keys:["tug"],                        label:"移動能力",
+    declineText:"TUGに時間の延長がみられています。歩行状態や方向転換、立ち座りの様子を確認しながら、安全な移動につなげていきます。" },
+];
+const COMMENT_ALL_KEYS = COMMENT_CATEGORIES.flatMap(c=>c.keys);
+
+// 変化なし（維持）とみなす閾値。後から項目ごとに変更しやすいよう定数化。
+const FLAT_THRESHOLD = {
+  gripRight:0.3, gripLeft:0.3, sitReach:1.0, balanceRight:1.0, balanceLeft:1.0,
+  tug:0.5, weight:0.5, bmi:0.2
+};
+
+// ブラウザのローカル時間に基づくYYYY-MM-DD形式の日付を返す（UTCのズレを避けるため、
+// 今日の日付を扱う箇所では必ずこの関数を使用する）
+function getLocalDateString(date = new Date()){
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function calcBMI(heightCm, weightKg){
+  if(!heightCm || !weightKg) return "";
+  const h = heightCm/100;
+  return Math.round((weightKg/(h*h))*10)/10;
+}
+
+function judgeChange(key, prevVal, curVal){
+  if(prevVal===""||prevVal===undefined||prevVal===null||curVal===""||curVal===undefined||curVal===null){
+    return {diff:null, status:"none"};
+  }
+  const diff = Math.round((curVal - prevVal)*10)/10;
+  const field = MEASURE_FIELDS.find(f=>f.key===key);
+  const threshold = FLAT_THRESHOLD[key] ?? 0.3;
+  if(field.direction === "neutral"){
+    return {diff, status:"neutral"};
+  }
+  if(Math.abs(diff) < threshold){
+    return {diff, status:"flat"};
+  }
+  if(field.direction === "higher"){
+    return {diff, status: diff>0 ? "good":"bad"};
+  }else{
+    return {diff, status: diff<0 ? "good":"bad"};
+  }
+}
+
+/* ==========================================================
+   評価コメントの自動作成（外部AI・APIは使用しない、ルールベース）
+   latestRecord / prevRecord は { values: {...} } を持つオブジェクトであればよい
+   ========================================================== */
+function generateAutoComment(latestRecord, prevRecord){
+  if(!prevRecord){
+    return "今回が初回測定です。今後の測定結果と比較しながら、身体機能の変化を確認していきます。";
+  }
+
+  const statusMap = {};
+  COMMENT_ALL_KEYS.forEach(key=>{
+    statusMap[key] = judgeChange(key, prevRecord.values[key], latestRecord.values[key]).status;
+  });
+
+  const comparableCount = COMMENT_ALL_KEYS.filter(k=> statusMap[k] !== "none").length;
+  if(comparableCount === 0){
+    return "前回測定との比較が可能な項目がないため、今回の測定結果を今後の経過確認に活用していきます。";
+  }
+
+  const declinedCategories = COMMENT_CATEGORIES.filter(cat=>
+    cat.keys.some(k=> statusMap[k] === "bad")
+  );
+
+  if(declinedCategories.length === 1){
+    return declinedCategories[0].declineText;
+  }
+  if(declinedCategories.length >= 2){
+    const labels = declinedCategories.map(c=>c.label);
+    return `${labels.join("・")}に低下がみられています。今後も無理のない範囲で機能訓練や運動を継続し、身体機能の維持と転倒予防に取り組んでいきます。`;
+  }
+
+  // 低下項目がない場合：改善・維持の傾向を確認
+  const goodCount = COMMENT_ALL_KEYS.filter(k=> statusMap[k] === "good").length;
+  const flatCount = COMMENT_ALL_KEYS.filter(k=> statusMap[k] === "flat").length;
+
+  let sentence;
+  if(goodCount>0 && goodCount>=flatCount){
+    sentence = "握力やバランス能力などに改善がみられ、身体機能は概ね良好に推移しています。";
+  } else {
+    sentence = "各測定項目に大きな変化はなく、身体機能は概ね維持されています。";
+  }
+
+  if(statusMap.tug === "good"){
+    sentence += "TUGに改善がみられ、移動能力の向上がうかがえます。";
+  }
+  return sentence;
+}
+
+// 利用者の測定記録を古い順に並べ、各記録のautoCommentを時系列に沿って再計算する。
+// 過去日の記録の追加・編集・削除により「前回記録」が変わった場合に、
+// 影響を受けるすべての記録のコメントを整合させるために使用する。
+// ・最も古い記録は初回測定コメントにする
+// ・finalCommentが空欄、または再計算前のautoCommentと同じ（＝職員が編集していない）場合のみ、
+//   finalCommentも新しいautoCommentへ更新する
+// ・職員が独自に編集したfinalCommentは上書きしない
+function recalculateUserAutoComments(userId){
+  const records = DB.getRecords()
+    .filter(r=>r.userId===userId)
+    .sort((a,b)=> DB.recordOrderKey(a) < DB.recordOrderKey(b) ? -1 : (DB.recordOrderKey(a) > DB.recordOrderKey(b) ? 1 : 0));
+
+  let prev = null;
+  records.forEach(rec=>{
+    const newAuto = generateAutoComment(rec, prev);
+    const finalUnedited = !rec.finalComment || rec.finalComment === (rec.autoComment||"");
+    const patch = { autoComment: newAuto };
+    if(finalUnedited){
+      patch.finalComment = newAuto;
+    }
+    DB.updateRecord(rec.id, patch);
+    prev = rec; // 測定値は変更していないため、再計算前のオブジェクトをそのまま「前回」として使用できる
+  });
+}
+
+/* ==========================================================
+   入力値のバリデーション
+   ========================================================== */
+function validateMeasureValues(values){
+  const errors = [];
+  const warnings = [];
+
+  MEASURE_FIELDS.forEach(f=>{
+    if(f.computed) return;
+    const v = values[f.key];
+    if(v===""||v==null) return;
+
+    if(f.hardNoNegative && v<0){
+      errors.push(`${f.label}に負の数は入力できません。`);
+    }
+    if(f.mustBePositive && v<=0){
+      errors.push(`${f.label}は0より大きい値を入力してください。`);
+    }
+    if(f.max!=null && v>f.max){
+      warnings.push(`${f.label}の入力値（${v}${f.unit}）が想定範囲（上限目安 ${f.max}${f.unit}）を超えています。入力内容をご確認ください。`);
+    }
+    // 長座体前屈のようにマイナス値を許容する項目は、下限目安を下回った場合のみ警告（保存は禁止しない）
+    if(!f.hardNoNegative && !f.mustBePositive && f.min!=null && v<f.min){
+      warnings.push(`${f.label}の入力値（${v}${f.unit}）が想定範囲（下限目安 ${f.min}${f.unit}）を下回っています。入力内容をご確認ください。`);
+    }
+  });
+
+  return {errors, warnings};
+}
+
+/* ==========================================================
+   画面ルーティング
+   ========================================================== */
+let state = { screen:"list", selectedUserId:null, editUserId:null, editRecordId:null, chartField:"gripRight" };
+
+function navigate(screen, params={}){
+  state = {...state, screen, ...params};
+  render();
+}
+
+function renderDataWarningBanner(){
+  if(!DB.isDataHealthy()){
+    return `<div class="error-box">保存データの読み込みに失敗しました。データを上書きせず、管理者に確認してください。</div>`;
+  }
+  return "";
+}
+
+function render(){
+  // 画面の描画前に必ず一度データを読み込み、破損の有無を確定させてから警告バナーを判定する
+  DB.getUsers();
+  DB.getRecords();
+
+  const app = document.getElementById("app");
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));
+  let html = renderDataWarningBanner();
+  if(state.screen==="list"){
+    html += renderUserList();
+    app.innerHTML = html;
+    bindUserListEvents();
+  } else if(state.screen==="userForm"){
+    html += renderUserForm(state.editUserId);
+    app.innerHTML = html;
+    bindUserFormEvents();
+  } else if(state.screen==="measureForm"){
+    html += renderMeasureForm(state.selectedUserId, state.editRecordId);
+    app.innerHTML = html;
+    bindMeasureFormEvents();
+  } else if(state.screen==="history"){
+    html += renderHistory(state.selectedUserId);
+    app.innerHTML = html;
+    bindHistoryEvents();
+  }
+}
+
+/* ==========================================================
+   画面1: 利用者一覧
+   ========================================================== */
+function renderUserList(searchTerm=""){
+  const users = DB.getUsers();
+  const filtered = searchTerm ? users.filter(u=>u.name.includes(searchTerm)) : users;
+
+  const rows = filtered.map(u=>{
+    const records = DB.getRecordsForUser(u.id);
+    const lastDate = records.length ? records[0].date : "―";
+    return `
+      <tr>
+        <td>${escapeHtml(u.name)}</td>
+        <td>${escapeHtml(u.careLevel||"―")}</td>
+        <td>${lastDate}</td>
+        <td>
+          <div class="row">
+            <button class="btn btn-primary btn-sm" data-action="measure" data-id="${u.id}">測定入力</button>
+            <button class="btn btn-secondary btn-sm" data-action="history" data-id="${u.id}">履歴確認</button>
+            <button class="btn btn-flat btn-sm" data-action="edit" data-id="${u.id}">編集</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join("");
+
+  return `
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <h2 style="margin:0;">利用者一覧</h2>
+        <button class="btn btn-primary" id="btn-new-user">＋ 利用者を新規登録</button>
+      </div>
+
+      <div class="warn-box" style="margin-top:16px;">このアプリは端末内にデータを保存します。端末やブラウザの状態によってデータが消える可能性があるため、定期的にバックアップを保存してください。</div>
+
+      <div class="row" style="margin-bottom:6px;">
+        <button class="btn btn-secondary btn-sm" id="btn-backup-save">バックアップを保存</button>
+        <button class="btn btn-flat btn-sm" id="btn-backup-restore">バックアップから復元</button>
+        <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none;">
+      </div>
+
+      <div class="search-box" style="margin-top:16px;">
+        <input type="text" id="search-input" placeholder="利用者名で検索" value="${escapeHtml(searchTerm)}">
+      </div>
+      ${filtered.length ? `
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>利用者名</th><th>要介護度</th><th>最終測定日</th><th>操作</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </div>` : `<div class="empty">登録されている利用者がいません。「利用者を新規登録」から追加してください。</div>`}
+    </div>
+  `;
+}
+
+function bindUserListEvents(){
+  document.getElementById("btn-new-user").onclick = ()=>{
+    navigate("userForm", {editUserId:null});
+  };
+
+  document.getElementById("btn-backup-save").onclick = downloadBackup;
+
+  const restoreBtn = document.getElementById("btn-backup-restore");
+  const fileInput = document.getElementById("backup-file-input");
+  restoreBtn.onclick = ()=> fileInput.click();
+  fileInput.onchange = (e)=> handleBackupFileSelected(e.target.files[0], fileInput);
+
+  const searchInput = document.getElementById("search-input");
+  const rows = document.querySelectorAll("tbody tr");
+  const applySearchFilter = ()=>{
+    const searchTerm = searchInput.value.trim();
+    rows.forEach(row=>{
+      const userName = row.cells[0]?.textContent || "";
+      row.style.display =
+        !searchTerm || userName.includes(searchTerm)
+          ? ""
+          : "none";
+    });
+  };
+  // IME（日本語入力）の変換確定前に検索処理が走ると、文字が二重に入力されたように見える
+  // 不具合が起きることがあるため、変換中は検索処理を行わず、確定後にのみ実行する
+  let isComposing = false;
+  searchInput.addEventListener("compositionstart", ()=>{
+    isComposing = true;
+  });
+  searchInput.addEventListener("compositionend", ()=>{
+    isComposing = false;
+    applySearchFilter();
+  });
+  searchInput.addEventListener("input", ()=>{
+    if(isComposing) return;
+    applySearchFilter();
+  });
+  document.querySelectorAll("[data-action]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if(action === "measure"){
+        navigate("measureForm", {
+          selectedUserId:id,
+          editRecordId:null
+        });
+      }
+      if(action === "history"){
+        navigate("history", {
+          selectedUserId:id
+        });
+      }
+      if(action === "edit"){
+        navigate("userForm", {
+          editUserId:id
+        });
+      }
+    };
+  });
+}
+
+/* ==========================================================
+   バックアップ出力・復元
+   対象localStorageキー: taiseku_users_v1 / taiseku_records_v1 / taiseku_facility_name_v1
+   ========================================================== */
+function buildBackupObject(){
+  return {
+    formatVersion: 1,
+    createdAt: new Date().toISOString(),
+    users: DB.getUsers(),
+    records: DB.getRecords(),
+    facilityName: DB.getFacilityName()
+  };
+}
+
+function downloadBackup(){
+  const backup = buildBackupObject();
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `体力測定バックアップ_${getLocalDateString()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  showToast("バックアップを保存しました");
+}
+
+// 復元するJSONの検証：JSONとして読めるか（呼び出し元でJSON.parse済み）、
+// 利用者情報・測定記録が配列か、施設名が文字列または空欄か、必須データが揃っているかを確認する
+function validateBackupData(data){
+  const errors = [];
+
+  if(!data || typeof data !== "object" || Array.isArray(data)){
+    errors.push("ファイルの内容を正しく読み込めませんでした。");
+    return {valid:false, errors};
+  }
+  if(!Array.isArray(data.users)){
+    errors.push("利用者情報のデータ形式が正しくありません。");
+  }
+  if(!Array.isArray(data.records)){
+    errors.push("測定記録のデータ形式が正しくありません。");
+  }
+  if(data.facilityName!==undefined && data.facilityName!==null && typeof data.facilityName !== "string"){
+    errors.push("施設名のデータ形式が正しくありません。");
+  }
+
+  if(errors.length>0){
+    return {valid:false, errors};
+  }
+
+  return {
+    valid:true,
+    errors:[],
+    summary:{
+      userCount: data.users.length,
+      recordCount: data.records.length,
+      createdAt: data.createdAt || null
+    }
+  };
+}
+
+function formatBackupDate(isoStr){
+  if(!isoStr) return "不明";
+  const d = new Date(isoStr);
+  if(isNaN(d.getTime())) return "不明";
+  return `${getLocalDateString(d)} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
+function handleBackupFileSelected(file, fileInput){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    let parsed;
+    try{
+      parsed = JSON.parse(ev.target.result);
+    }catch(err){
+      alert("このファイルを読み込めませんでした。JSON形式のバックアップファイルを選択してください。");
+      fileInput.value = "";
+      return;
+    }
+
+    const result = validateBackupData(parsed);
+    if(!result.valid){
+      alert("このファイルは復元できません。\n" + result.errors.join("\n"));
+      fileInput.value = "";
+      return;
+    }
+
+    fileInput.value = ""; // 同じファイルを続けて選択できるようにリセット
+
+    const summaryHtml = `
+      <p>選択したバックアップの内容は以下の通りです。</p>
+      <table><tbody>
+        <tr><td>利用者数</td><td>${result.summary.userCount}件</td></tr>
+        <tr><td>測定記録数</td><td>${result.summary.recordCount}件</td></tr>
+        <tr><td>バックアップ作成日時</td><td>${escapeHtml(formatBackupDate(result.summary.createdAt))}</td></tr>
+      </tbody></table>
+      <div class="warn-box" style="margin-top:14px;">現在保存されているデータは、選択したバックアップデータで上書きされます。復元前に現在のデータをバックアップすることをおすすめします。</div>
+    `;
+
+    showConfirmModal(
+      "バックアップからの復元",
+      summaryHtml,
+      ()=>{
+        localStorage.setItem(DB.KEY_USERS, JSON.stringify(parsed.users));
+        localStorage.setItem(DB.KEY_RECORDS, JSON.stringify(parsed.records));
+        localStorage.setItem(DB.KEY_FACILITY, typeof parsed.facilityName === "string" ? parsed.facilityName : "");
+        // 正常なバックアップで上書きしたため、破損フラグが立っていた場合も解除する
+        DB._usersCorrupted = false;
+        DB._recordsCorrupted = false;
+        navigate("list");
+        showToast("バックアップから復元しました");
+      },
+      true
+    );
+  };
+  reader.onerror = ()=>{
+    alert("ファイルの読み込みに失敗しました。");
+    fileInput.value = "";
+  };
+  reader.readAsText(file);
+}
+
+/* ==========================================================
+   画面2: 利用者登録・編集
+   ========================================================== */
+function renderUserForm(userId){
+  const u = userId ? DB.getUser(userId) : null;
+  const title = u ? "利用者情報の編集" : "利用者の新規登録";
+  return `
+    <div class="card">
+      <h2>${title}</h2>
+      <form id="user-form">
+        <div class="grid2">
+          <div class="field">
+            <label>利用者名 <span style="color:var(--bad)">*</span></label>
+            <input type="text" name="name" required value="${u?escapeHtml(u.name):""}">
+          </div>
+          <div class="field">
+            <label>性別</label>
+            <select name="gender">
+              <option value="">選択してください</option>
+              <option value="女性" ${u&&u.gender==="女性"?"selected":""}>女性</option>
+              <option value="男性" ${u&&u.gender==="男性"?"selected":""}>男性</option>
+              <option value="その他" ${u&&u.gender==="その他"?"selected":""}>その他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>生年月日</label>
+            <input type="date" name="birthDate" value="${u?u.birthDate||"":""}">
+          </div>
+          <div class="field">
+            <label>要介護度</label>
+            <select name="careLevel">
+              <option value="">選択してください</option>
+              ${["自立","要支援1","要支援2","要介護1","要介護2","要介護3","要介護4","要介護5"].map(lv=>
+                `<option value="${lv}" ${u&&u.careLevel===lv?"selected":""}>${lv}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label>利用開始日</label>
+            <input type="date" name="startDate" value="${u?u.startDate||"":""}">
+          </div>
+          <div class="field">
+            <label>身長（cm）</label>
+            <input type="number" step="0.1" min="0.1" name="height" value="${u&&u.height!=null?u.height:""}">
+          </div>
+        </div>
+        <div class="field">
+          <label>備考</label>
+          <textarea name="notes">${u?escapeHtml(u.notes||""):""}</textarea>
+        </div>
+        <div class="row">
+          <button type="submit" class="btn btn-primary">保存する</button>
+          <button type="button" class="btn btn-flat" id="btn-cancel">戻る</button>
+          ${u?`<button type="button" class="btn btn-danger" id="btn-delete-user" style="margin-left:auto;">この利用者を削除</button>`:""}
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function bindUserFormEvents(){
+  document.getElementById("btn-cancel").onclick = ()=>navigate("list");
+  const delBtn = document.getElementById("btn-delete-user");
+  if(delBtn){
+    delBtn.onclick = ()=>{
+      const count = DB.getRecordsForUser(state.editUserId).length;
+      showConfirmModal(
+        "利用者の削除",
+        `この利用者を削除します。登録されている測定記録 <strong>${count}件</strong> も同時に削除されます。この操作は取り消せません。よろしいですか？`,
+        ()=>{
+          DB.deleteUser(state.editUserId);
+          navigate("list");
+          showToast("利用者を削除しました");
+        }
+      );
+    };
+  }
+  document.getElementById("user-form").onsubmit = (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const heightRaw = fd.get("height");
+    const height = heightRaw ? parseFloat(heightRaw) : null;
+    if(height!==null && height<=0){
+      alert("身長は0より大きい値を入力してください。");
+      return;
+    }
+    if(height!==null && height>250){
+      if(!confirm(`身長の入力値（${height}cm）が想定範囲（上限目安 250cm）を超えています。このまま保存しますか？`)) return;
+    }
+    const data = {
+      name: fd.get("name").trim(),
+      gender: fd.get("gender"),
+      birthDate: fd.get("birthDate"),
+      careLevel: fd.get("careLevel"),
+      startDate: fd.get("startDate"),
+      height: height,
+      notes: fd.get("notes")
+    };
+    if(!data.name){ alert("利用者名を入力してください。"); return; }
+    if(state.editUserId){
+      DB.updateUser(state.editUserId, data);
+      showToast("利用者情報を更新しました");
+    } else {
+      DB.addUser(data);
+      showToast("利用者を登録しました");
+    }
+    navigate("list");
+  };
+}
+
+/* ==========================================================
+   画面3: 体力測定入力
+   ========================================================== */
+function renderMeasureForm(userId, recordId){
+  const u = DB.getUser(userId);
+  if(!u) return `<div class="card"><p>利用者が見つかりません。</p><button class="btn btn-flat" onclick="navigate('list')">一覧に戻る</button></div>`;
+  const rec = recordId ? DB.getRecords().find(r=>r.id===recordId) : null;
+
+  const today = getLocalDateString();
+
+  const numberFields = MEASURE_FIELDS.filter(f=>!f.computed).map(f=>`
+    <div class="field">
+      <label>${f.label}${f.unit?`（${f.unit}）`:""}</label>
+      <input type="number" inputmode="decimal" step="${f.step}" min="${f.min}" name="${f.key}"
+        value="${rec && rec.values[f.key]!=null ? rec.values[f.key] : ""}"
+        placeholder="未測定の場合は空欄">
+    </div>
+  `).join("");
+
+  return `
+    <div class="card">
+      <h2>体力測定入力 － ${escapeHtml(u.name)} 様</h2>
+      <p class="muted">登録されている身長：<strong>${u.height ? u.height+" cm" : "未登録"}</strong>
+      （身長を変更する場合は利用者編集画面で行ってください）</p>
+      ${!u.height ? `<div class="warn-box">身長が未登録のため、体重を入力してもBMIは自動計算されません。BMIを計算する場合は、先に利用者編集画面で身長を登録してください。</div>` : ""}
+
+      <form id="measure-form">
+        <div class="field">
+          <label>測定日 <span style="color:var(--bad)">*</span></label>
+          <input type="date" name="date" required value="${rec?rec.date:today}">
+        </div>
+
+        <div class="section-title">測定項目（未測定の項目は空欄のままで構いません）</div>
+        <div class="grid2">
+          ${numberFields}
+        </div>
+
+        <div class="field" style="margin-top:6px;">
+          <label>BMI（自動計算）</label>
+          <input type="text" id="bmi-display" value="${rec && rec.values.bmi!=null ? rec.values.bmi : ""}" disabled
+            style="background:var(--bg-soft);font-weight:700;">
+          <div class="hint" id="bmi-hint">身長・体重の両方が入力されると自動計算されます。</div>
+        </div>
+
+        <div class="field">
+          <label>測定時の様子、注意点</label>
+          <textarea name="memo">${rec?escapeHtml(rec.memo||""):""}</textarea>
+        </div>
+
+        <div class="row">
+          <button type="submit" class="btn btn-primary">確認画面へ</button>
+          <button type="button" class="btn btn-flat" id="btn-cancel-measure">戻る</button>
+          ${rec ? `<button type="button" class="btn btn-danger" id="btn-delete-record" style="margin-left:auto;">この記録を削除</button>` : ""}
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function bindMeasureFormEvents(){
+  document.getElementById("btn-cancel-measure").onclick = ()=>navigate("history",{selectedUserId:state.selectedUserId});
+  const u = DB.getUser(state.selectedUserId);
+
+  function updateBmiDisplay(){
+    const form = document.getElementById("measure-form");
+    const weight = parseFloat(form.weight.value);
+    const bmi = calcBMI(u.height, weight);
+    document.getElementById("bmi-display").value = bmi===""?"":bmi;
+    const hint = document.getElementById("bmi-hint");
+    if(!u.height && form.weight.value){
+      hint.textContent = "身長が未登録のため、BMIは計算できません。";
+      hint.style.color = "var(--warn)";
+    } else {
+      hint.textContent = "身長・体重の両方が入力されると自動計算されます。";
+      hint.style.color = "";
+    }
+  }
+  const form = document.getElementById("measure-form");
+  form.weight.addEventListener("input", updateBmiDisplay);
+  updateBmiDisplay();
+
+  const delBtn = document.getElementById("btn-delete-record");
+  if(delBtn){
+    delBtn.onclick = ()=>{
+      showConfirmModal("測定記録の削除","この測定記録を削除します。よろしいですか？", ()=>{
+        const targetUserId = state.selectedUserId;
+        DB.deleteRecord(state.editRecordId);
+        recalculateUserAutoComments(targetUserId);
+        navigate("history",{selectedUserId:targetUserId});
+        showToast("測定記録を削除しました");
+      });
+    };
+  }
+
+  form.onsubmit = (e)=>{
+    e.preventDefault();
+    const fd = new FormData(form);
+    const date = fd.get("date");
+    if(!date){ alert("測定日を入力してください。"); return; }
+
+    const values = {};
+    MEASURE_FIELDS.filter(f=>!f.computed).forEach(f=>{
+      const v = fd.get(f.key);
+      values[f.key] = v ? parseFloat(v) : "";
+    });
+    values.bmi = calcBMI(u.height, values.weight);
+
+    const memo = fd.get("memo");
+
+    const {errors, warnings} = validateMeasureValues(values);
+    if(errors.length>0){
+      alert(errors.join("\n"));
+      return;
+    }
+
+    const isDuplicateDate = DB.getRecordsForUser(u.id).some(r=> r.date===date && r.id!==state.editRecordId);
+    const todayStr = getLocalDateString();
+    const isFutureDate = date > todayStr;
+
+    let confirmBody = "";
+    if(warnings.length>0){
+      confirmBody += `<div class="warn-box">${warnings.join("<br>")}</div>`;
+    }
+    if(isFutureDate){
+      confirmBody += `<div class="warn-box">測定日（${date}）が未来の日付になっています。日付に誤りがないかご確認ください。</div>`;
+    }
+    if(isDuplicateDate){
+      confirmBody += `<div class="warn-box">この利用者には、同じ測定日（${date}）の記録がすでに存在します。別記録として保存されますが、よろしいですか？</div>`;
+    }
+    confirmBody += buildMeasureConfirmHtml(u, date, values, memo);
+
+    showConfirmModal(
+      "入力内容の確認",
+      confirmBody,
+      ()=>{
+        if(state.editRecordId){
+          saveEditedRecord(u, state.editRecordId, date, values, memo);
+        } else {
+          DB.addRecord({userId:u.id, date, values, memo});
+          // 過去日の記録を追加した場合、その後の記録の「前回記録」が変わる可能性があるため、
+          // この利用者の記録すべてを時系列で再計算する
+          recalculateUserAutoComments(u.id);
+          showToast("測定結果を保存しました");
+          navigate("history",{selectedUserId:u.id});
+        }
+      },
+      true
+    );
+  };
+}
+
+// 測定記録の編集保存：値・日付を更新したうえで、この利用者の全記録のコメントを
+// 時系列に沿って再計算する（過去日への変更で後続記録の「前回記録」が変わる場合にも対応）。
+// 編集対象の記録自体について、職員がfinalCommentを編集済みだった場合は
+// 「再作成する／現在のコメントを残す」を確認する。
+function saveEditedRecord(u, recordId, date, values, memo){
+  const oldRecord = DB.getRecords().find(r=>r.id===recordId);
+  const finalUnedited = !oldRecord.finalComment || oldRecord.finalComment === (oldRecord.autoComment||"");
+
+  // 値・日付・メモのみ先に更新（コメントは再計算関数にまとめて任せる）
+  DB.updateRecord(recordId, {date, values, memo});
+
+  if(finalUnedited){
+    recalculateUserAutoComments(u.id);
+    showToast("測定結果を更新しました");
+    navigate("history",{selectedUserId:u.id});
+  } else {
+    showChoiceModal(
+      "評価コメントの確認",
+      "測定結果が変更されました。評価コメントを再作成しますか？",
+      [
+        { label:"再作成する", primary:true, onClick:()=>{
+            recalculateUserAutoComments(u.id);
+            // 再作成が明示的に選ばれたため、この記録のfinalCommentは新しいautoCommentで強制的に更新する
+            const refreshed = DB.getRecords().find(r=>r.id===recordId);
+            DB.updateRecord(recordId, {finalComment: refreshed.autoComment});
+            showToast("測定結果を更新しました");
+            navigate("history",{selectedUserId:u.id});
+          }
+        },
+        { label:"現在のコメントを残す", primary:false, onClick:()=>{
+            recalculateUserAutoComments(u.id);
+            showToast("測定結果を更新しました（コメントは変更していません）");
+            navigate("history",{selectedUserId:u.id});
+          }
+        }
+      ]
+    );
+  }
+}
+
+function buildMeasureConfirmHtml(u, date, values, memo){
+  const rows = MEASURE_FIELDS.map(f=>{
+    const v = values[f.key];
+    return `<tr><td>${f.label}</td><td>${v===""||v==null?"（未測定）":v+f.unit}</td></tr>`;
+  }).join("");
+  return `
+    <p><strong>${escapeHtml(u.name)}</strong> 様　測定日：${date}</p>
+    <div class="table-wrap"><table><tbody>${rows}</tbody></table></div>
+    ${memo?`<p style="margin-top:10px;"><strong>様子・注意点：</strong>${escapeHtml(memo)}</p>`:""}
+    <p class="muted" style="margin-top:10px;">この内容で保存してよろしいですか？</p>
+  `;
+}
+
+/* ==========================================================
+   画面4: 測定結果・履歴確認
+   ========================================================== */
+function buildPrintHeaderHtml(u, facilityName, latest, prev){
+  const facilityLine = facilityName ? `<h2>${escapeHtml(facilityName)}</h2>` : "";
+  return `
+    ${facilityLine}
+    <p>利用者名：${escapeHtml(u.name)} 様　生年月日：${u.birthDate||"未登録"}　要介護度：${escapeHtml(u.careLevel||"―")}　身長：${u.height?u.height+"cm":"未登録"}</p>
+    <p>今回測定日：${latest?latest.date:"―"}　前回測定日：${prev?prev.date:"―（初回）"}</p>
+  `;
+}
+
+function renderHistory(userId){
+  const u = DB.getUser(userId);
+  if(!u) return `<div class="card"><p>利用者が見つかりません。</p></div>`;
+  let records = DB.getRecordsForUser(userId); // 新しい順
+
+  // 既存データ互換: autoCommentが未定義または空文字の記録が含まれる場合は、
+  // この利用者の記録全体を時系列に沿って再計算しておく
+  // （職員が入力済みのfinalCommentは上書きしない）
+  const needsMigration = records.some(r=> r.autoComment===undefined || r.autoComment==="");
+  if(needsMigration){
+    recalculateUserAutoComments(userId);
+    records = DB.getRecordsForUser(userId);
+  }
+
+  let latest = records[0];
+  const prev = latest ? DB.getPreviousRecord(userId, latest.date, latest.id, DB.recordTimestamp(latest)) : null;
+
+  const facilityName = DB.getFacilityName();
+
+  let compareHtml = "";
+  let printOnlyHeader = "";
+  if(latest){
+    const rows = MEASURE_FIELDS.map(f=>{
+      const curVal = latest.values[f.key];
+      const prevVal = prev ? prev.values[f.key] : "";
+      const {diff, status} = judgeChange(f.key, prevVal, curVal);
+      let badge = "";
+      if(status==="good") badge = `<span class="badge badge-good">改善</span>`;
+      else if(status==="bad") badge = `<span class="badge badge-bad">低下</span>`;
+      else if(status==="flat") badge = `<span class="badge badge-flat">維持</span>`;
+      else if(status==="neutral" && diff!==null) badge = `<span class="badge badge-neutral">増減のみ</span>`;
+      else badge = `<span class="muted">―</span>`;
+
+      const diffText = diff===null ? "―" : (diff>0?`＋${diff}`:`${diff}`) + f.unit;
+      const diffClass = diff===null?"diff-flat":(status==="good"?"diff-up":status==="bad"?"diff-down":"diff-flat");
+
+      return `
+        <tr>
+          <td>${f.label}</td>
+          <td>${prevVal===""||prevVal==null?"―":prevVal+f.unit}</td>
+          <td><strong>${curVal===""||curVal==null?"―":curVal+f.unit}</strong></td>
+          <td class="${diffClass}">${diffText}</td>
+          <td>${badge}</td>
+        </tr>`;
+    }).join("");
+
+    compareHtml = `
+      <div class="section-title">最新結果と前回の比較（測定日：${latest.date}${prev?` ／ 前回：${prev.date}`:" ／ 前回データなし"}）</div>
+      <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>項目</th><th>前回</th><th>今回</th><th>変化</th><th>判定</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </div>
+      ${latest.memo?`<p style="margin-top:12px;"><strong>測定時の様子・注意点：</strong>${escapeHtml(latest.memo)}</p>`:""}
+      <div class="row no-print" style="margin-top:16px;">
+        <button class="btn btn-primary" id="btn-edit-latest">この結果を編集</button>
+      </div>
+    `;
+
+    printOnlyHeader = buildPrintHeaderHtml(u, facilityName, latest, prev);
+  } else {
+    compareHtml = `<div class="empty">まだ測定記録がありません。「新規測定を入力」から登録してください。</div>`;
+  }
+
+  const historyRows = records.map(r=>`
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.values.gripRight!==""&&r.values.gripRight!=null?r.values.gripRight+"kg":"―"}</td>
+      <td>${r.values.gripLeft!==""&&r.values.gripLeft!=null?r.values.gripLeft+"kg":"―"}</td>
+      <td>${r.values.tug!==""&&r.values.tug!=null?r.values.tug+"秒":"―"}</td>
+      <td>${r.values.weight!==""&&r.values.weight!=null?r.values.weight+"kg":"―"}</td>
+      <td>${r.values.bmi!==""&&r.values.bmi!=null?r.values.bmi:"―"}</td>
+      <td><button class="btn btn-flat btn-sm" data-record-id="${r.id}">編集</button></td>
+    </tr>
+  `).join("");
+
+  const commentSection = latest ? `
+    <div class="card">
+      <h2>評価コメント</h2>
+      <p class="muted no-print">自動作成された文章案です。内容を確認のうえ、必要に応じて自由に編集してください。</p>
+      <div class="comment-box no-print" id="auto-comment-ref">${escapeHtml(latest.autoComment||"")}</div>
+      <div class="field no-print">
+        <label>最終コメント（編集可）</label>
+        <textarea id="final-comment-input">${escapeHtml(latest.finalComment||"")}</textarea>
+      </div>
+      <div class="row no-print">
+        <button class="btn btn-primary" id="btn-save-comment">コメントを保存</button>
+        <button class="btn btn-flat" id="btn-regen-comment">コメントを再作成</button>
+      </div>
+      <div class="print-only-comment" id="print-final-comment"></div>
+    </div>
+  ` : "";
+
+  const chartSection = `
+    <div class="card">
+      <h2>測定結果の推移グラフ</h2>
+      <div class="row no-print" style="margin-bottom:12px;">
+        <label style="font-weight:700;">表示項目：</label>
+        <select id="chart-field-select">
+          ${MEASURE_FIELDS.map(f=>`<option value="${f.key}" ${f.key===state.chartField?"selected":""}>${f.label}</option>`).join("")}
+        </select>
+      </div>
+      <div id="chart-wrap"></div>
+    </div>
+  `;
+
+  return `
+    <div class="print-only-header" id="print-only-header">${printOnlyHeader}</div>
+    <div class="card">
+      <div class="row no-print" style="justify-content:space-between;">
+        <h2 style="margin:0;">測定結果・履歴 － ${escapeHtml(u.name)} 様</h2>
+        <div class="row">
+          <button class="btn btn-secondary btn-sm" id="btn-back-list">利用者一覧へ</button>
+          <button class="btn btn-primary" id="btn-new-measure">＋ 新規測定を入力</button>
+        </div>
+      </div>
+      <p class="muted no-print">要介護度：${escapeHtml(u.careLevel||"―")}　身長：${u.height?u.height+"cm":"未登録"}</p>
+
+      <div class="field no-print" style="max-width:340px;">
+        <label>施設名（印刷に表示されます）</label>
+        <input type="text" id="facility-name-input" value="${escapeHtml(facilityName)}" placeholder="例：〇〇デイサービスセンター">
+      </div>
+      <div class="row no-print">
+        <button class="btn btn-secondary" id="btn-print">印刷する</button>
+      </div>
+
+      ${compareHtml}
+    </div>
+
+    ${commentSection}
+
+    ${chartSection}
+
+    <div class="card no-print">
+      <h2>過去の測定履歴</h2>
+      ${records.length ? `
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>測定日</th><th>握力右</th><th>握力左</th><th>TUG</th><th>体重</th><th>BMI</th><th></th></tr></thead>
+        <tbody>${historyRows}</tbody>
+      </table>
+      </div>` : `<div class="empty">履歴はまだありません。</div>`}
+    </div>
+  `;
+}
+
+function bindHistoryEvents(){
+  document.getElementById("btn-back-list").onclick = ()=>navigate("list");
+  document.getElementById("btn-new-measure").onclick = ()=>navigate("measureForm",{selectedUserId:state.selectedUserId, editRecordId:null});
+  const editLatest = document.getElementById("btn-edit-latest");
+  if(editLatest){
+    const latest = DB.getRecordsForUser(state.selectedUserId)[0];
+    editLatest.onclick = ()=>navigate("measureForm",{selectedUserId:state.selectedUserId, editRecordId:latest.id});
+  }
+  document.querySelectorAll("[data-record-id]").forEach(btn=>{
+    btn.onclick = ()=>navigate("measureForm",{selectedUserId:state.selectedUserId, editRecordId:btn.dataset.recordId});
+  });
+
+  // 施設名保存
+  const facilityInput = document.getElementById("facility-name-input");
+  if(facilityInput){
+    facilityInput.oninput = (e)=>{ DB.setFacilityName(e.target.value); };
+  }
+
+  const printBtn = document.getElementById("btn-print");
+  if(printBtn){
+    printBtn.onclick = ()=>{
+      syncPrintArtifacts();
+      setTimeout(()=>window.print(), 50);
+    };
+  }
+
+  // 評価コメント
+  const saveBtn = document.getElementById("btn-save-comment");
+  const regenBtn = document.getElementById("btn-regen-comment");
+  if(saveBtn){
+    saveBtn.onclick = ()=>{
+      const latest = DB.getRecordsForUser(state.selectedUserId)[0];
+      const val = document.getElementById("final-comment-input").value;
+      DB.updateRecord(latest.id, {finalComment: val});
+      showToast("コメントを保存しました");
+    };
+  }
+  if(regenBtn){
+    regenBtn.onclick = ()=>{
+      const records = DB.getRecordsForUser(state.selectedUserId);
+      const latest = records[0];
+      const prev = DB.getPreviousRecord(state.selectedUserId, latest.date, latest.id, DB.recordTimestamp(latest));
+      const newAuto = generateAutoComment(latest, prev);
+      const currentFinal = document.getElementById("final-comment-input").value;
+      const hasEdited = currentFinal && currentFinal !== (latest.autoComment||"");
+      const apply = ()=>{
+        DB.updateRecord(latest.id, {autoComment:newAuto, finalComment:newAuto});
+        navigate("history",{selectedUserId:state.selectedUserId});
+        showToast("コメントを再作成しました");
+      };
+      if(hasEdited){
+        showConfirmModal("コメントの再作成","現在のコメントは編集済みです。自動作成コメントで上書きしてよろしいですか？", apply);
+      } else {
+        apply();
+      }
+    };
+  }
+
+  // グラフ
+  const select = document.getElementById("chart-field-select");
+  if(select){
+    select.onchange = (e)=>{
+      state.chartField = e.target.value;
+      updateChart(state.selectedUserId, state.chartField);
+    };
+    updateChart(state.selectedUserId, state.chartField || "gripRight");
+  }
+}
+
+// 印刷直前に、施設名・最終コメント・印刷用ヘッダー・グラフを最新状態へ同期する
+function syncPrintArtifacts(){
+  if(state.screen!=="history") return;
+  const u = DB.getUser(state.selectedUserId);
+  if(!u) return;
+
+  const facilityInput = document.getElementById("facility-name-input");
+  const facilityName = facilityInput ? facilityInput.value : DB.getFacilityName();
+  if(facilityInput) DB.setFacilityName(facilityName);
+
+  const records = DB.getRecordsForUser(state.selectedUserId);
+  const latest = records[0];
+  const prev = latest ? DB.getPreviousRecord(state.selectedUserId, latest.date, latest.id, DB.recordTimestamp(latest)) : null;
+
+  const headerEl = document.getElementById("print-only-header");
+  if(headerEl && latest){
+    headerEl.innerHTML = buildPrintHeaderHtml(u, facilityName, latest, prev);
+  }
+
+  const finalCommentInput = document.getElementById("final-comment-input");
+  const printFinalEl = document.getElementById("print-final-comment");
+  if(printFinalEl){
+    printFinalEl.textContent = finalCommentInput ? finalCommentInput.value : (latest ? (latest.finalComment||"") : "");
+  }
+
+  updateChart(state.selectedUserId, state.chartField || "gripRight");
+}
+
+window.addEventListener("beforeprint", syncPrintArtifacts);
+
+/* ==========================================================
+   グラフ描画（外部ライブラリなし、canvas + JavaScript）
+   ========================================================== */
+function updateChart(userId, key){
+  const wrap = document.getElementById("chart-wrap");
+  if(!wrap) return;
+  const field = MEASURE_FIELDS.find(f=>f.key===key);
+  const records = DB.getRecordsForUser(userId).slice().sort((a,b)=> DB.recordOrderKey(a) < DB.recordOrderKey(b) ? -1 : (DB.recordOrderKey(a) > DB.recordOrderKey(b) ? 1 : 0));
+  const points = records
+    .filter(r=> r.values[key]!==""&&r.values[key]!=null)
+    .map(r=>({date:r.date, value:r.values[key]}));
+
+  if(points.length===0){
+    wrap.innerHTML = `<p class="empty">この項目の測定データはありません</p>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:700;">${field.label}${field.unit?`（${field.unit}）`:""}</div>
+    <canvas id="chart-canvas" style="width:100%;max-width:900px;height:320px;display:block;"></canvas>
+  `;
+  const canvas = document.getElementById("chart-canvas");
+  drawLineChart(canvas, points);
+}
+
+function drawLineChart(canvas, points){
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = canvas.clientWidth || 700;
+  const cssHeight = 320;
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,cssWidth,cssHeight);
+
+  const padL = 60, padR = 20, padT = 20, padB = 60;
+  const plotW = cssWidth - padL - padR;
+  const plotH = cssHeight - padT - padB;
+
+  const values = points.map(p=>p.value);
+  let minV = Math.min(...values);
+  let maxV = Math.max(...values);
+  if(minV===maxV){ minV -= 1; maxV += 1; }
+  const range = maxV - minV;
+  minV -= range*0.1;
+  maxV += range*0.1;
+
+  // 軸
+  ctx.strokeStyle = "#c8d6d2";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT+plotH);
+  ctx.lineTo(padL+plotW, padT+plotH);
+  ctx.stroke();
+
+  // y軸ラベル（5分割）
+  ctx.fillStyle = "#5b6b68";
+  ctx.font = "13px sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  const ySteps = 4;
+  for(let i=0;i<=ySteps;i++){
+    const v = minV + (maxV-minV)*(i/ySteps);
+    const y = padT + plotH - (plotH*(i/ySteps));
+    ctx.fillText(v.toFixed(1), padL-8, y);
+    ctx.strokeStyle = "#eef2f1";
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL+plotW, y);
+    ctx.stroke();
+  }
+
+  // x座標計算（同一日付の記録があっても、インデックスごとに位置をずらすため重ならない）
+  const n = points.length;
+  const xForIndex = (i)=> n===1 ? padL+plotW/2 : padL + (plotW*(i/(n-1)));
+  const yForValue = (v)=> padT + plotH - ((v-minV)/(maxV-minV))*plotH;
+
+  // 折れ線
+  ctx.strokeStyle = "#2f7a63";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  points.forEach((p,i)=>{
+    const x = xForIndex(i), y = yForValue(p.value);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // 点と数値ラベル
+  points.forEach((p,i)=>{
+    const x = xForIndex(i), y = yForValue(p.value);
+    ctx.fillStyle = "#245e4c";
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#1f2d2b";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(String(p.value), x, y-10);
+  });
+
+  // x軸ラベル（日付）。多い場合は間引く
+  ctx.fillStyle = "#5b6b68";
+  ctx.font = "12px sans-serif";
+  const maxLabels = 8;
+  const stepLabel = Math.max(1, Math.ceil(n / maxLabels));
+  points.forEach((p,i)=>{
+    if(i % stepLabel !== 0 && i !== n-1) return;
+    const x = xForIndex(i);
+    ctx.save();
+    ctx.translate(x, padT+plotH+16);
+    ctx.rotate(-Math.PI/5);
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(p.date, 0, 0);
+    ctx.restore();
+  });
+}
+
+// 画面幅変更・回転時にグラフを再描画（連続発火を防ぐため簡易デバウンス）
+let chartResizeTimer = null;
+window.addEventListener("resize", ()=>{
+  if(chartResizeTimer) clearTimeout(chartResizeTimer);
+  chartResizeTimer = setTimeout(()=>{
+    if(state.screen==="history" && document.getElementById("chart-canvas")){
+      updateChart(state.selectedUserId, state.chartField || "gripRight");
+    }
+  }, 200);
+});
+
+/* ==========================================================
+   共通UI: モーダル・トースト
+   ========================================================== */
+function showConfirmModal(title, bodyHtml, onConfirm, isLarge=false){
+  const root = document.getElementById("modal-root");
+  root.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal" style="${isLarge?'max-width:600px;':''}">
+        <h3>${title}</h3>
+        <div>${bodyHtml}</div>
+        <div class="row" style="margin-top:20px;justify-content:flex-end;">
+          <button class="btn btn-flat" id="modal-cancel">キャンセル</button>
+          <button class="btn btn-primary" id="modal-confirm">OK</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById("modal-cancel").onclick = ()=>root.innerHTML="";
+  document.getElementById("modal-confirm").onclick = ()=>{
+    root.innerHTML="";
+    onConfirm();
+  };
+}
+
+// OK/キャンセルではなく、複数の選択肢から選ばせるモーダル（コメント再作成の確認用）
+function showChoiceModal(title, bodyHtml, choices){
+  const root = document.getElementById("modal-root");
+  const buttonsHtml = choices.map((c,i)=>
+    `<button class="btn ${c.primary?'btn-primary':'btn-flat'}" data-choice-index="${i}">${c.label}</button>`
+  ).join("");
+  root.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>${title}</h3>
+        <div>${bodyHtml}</div>
+        <div class="row" style="margin-top:20px;justify-content:flex-end;">
+          ${buttonsHtml}
+        </div>
+      </div>
+    </div>
+  `;
+  choices.forEach((c,i)=>{
+    document.querySelector(`[data-choice-index="${i}"]`).onclick = ()=>{
+      root.innerHTML="";
+      c.onClick();
+    };
+  });
+}
+
+function showToast(msg){
+  const el = document.createElement("div");
+  el.className="toast";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2200);
+}
+
+function escapeHtml(str){
+  if(str==null) return "";
+  return String(str).replace(/[&<>"']/g, s=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[s]));
+}
+
+/* 起動 */
+render();
+</script>
+</body>
+</html>
