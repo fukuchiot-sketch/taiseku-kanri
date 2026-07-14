@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>体力測定管理アプリ（試作）</title>
+<title>体力測定管理</title>
 <style>
   :root{
     --bg:#ffffff;
@@ -188,11 +188,15 @@
   .print-only-header{display:none;}
   .print-only-comment{display:none;white-space:pre-wrap;}
 
+  @page{
+    size: A4 portrait;
+    margin: 14mm 12mm;
+  }
   @media print{
     body{background:#fff;font-size:13px;line-height:1.5;}
     header, nav, .no-print{display:none !important;}
-    main{max-width:100%;padding:0;margin:0;}
-    .card{border:none;padding:0;margin:0 0 10px 0;border-radius:0;}
+    main{max-width:100%;padding:0;margin:0;min-height:0;}
+    .card{border:none;padding:0;margin:0 0 10px 0;border-radius:0;break-inside:avoid;}
     .print-only-header{display:block;margin-bottom:8px;}
     .print-only-header h2{margin:0 0 4px 0;font-size:18px;}
     .print-only-header p{margin:2px 0;font-size:13px;}
@@ -200,15 +204,16 @@
     table{min-width:0;}
     th,td{padding:6px 8px;font-size:12px;}
     canvas{max-width:100% !important;}
+    #chart-wrap{break-inside:avoid;}
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>体力測定管理（試作）</h1>
+  <h1>体力測定管理</h1>
   <nav id="nav">
-    <button data-screen="list" class="active">利用者一覧</button>
+    <button id="nav-list-btn" data-screen="list" class="active">利用者一覧へ戻る</button>
   </nav>
 </header>
 
@@ -224,6 +229,7 @@ const DB = {
   KEY_USERS: "taiseku_users_v1",
   KEY_RECORDS: "taiseku_records_v1",
   KEY_FACILITY: "taiseku_facility_name_v1",
+  KEY_LAST_BACKUP: "taiseku_last_backup_at_v1",
   _usersCorrupted: false,
   _recordsCorrupted: false,
 
@@ -243,7 +249,7 @@ const DB = {
     }
   },
   saveUsers(users){
-    localStorage.setItem(this.KEY_USERS, JSON.stringify(users));
+    this._safeSetItem(this.KEY_USERS, JSON.stringify(users));
   },
   getRecords(){
     try{
@@ -261,7 +267,7 @@ const DB = {
     }
   },
   saveRecords(records){
-    localStorage.setItem(this.KEY_RECORDS, JSON.stringify(records));
+    this._safeSetItem(this.KEY_RECORDS, JSON.stringify(records));
   },
   isDataHealthy(){
     return !this._usersCorrupted && !this._recordsCorrupted;
@@ -356,7 +362,24 @@ const DB = {
     return localStorage.getItem(this.KEY_FACILITY) || "";
   },
   setFacilityName(name){
-    localStorage.setItem(this.KEY_FACILITY, name);
+    this._safeSetItem(this.KEY_FACILITY, name);
+  },
+  getLastBackupAt(){
+    return localStorage.getItem(this.KEY_LAST_BACKUP) || "";
+  },
+  setLastBackupAt(isoString){
+    this._safeSetItem(this.KEY_LAST_BACKUP, isoString);
+  },
+  // localStorageへの書き込みに失敗した場合（保存容量の上限など）も、
+  // アプリ全体が停止しないよう安全に処理する
+  _safeSetItem(key, value){
+    try{
+      localStorage.setItem(key, value);
+      return true;
+    }catch(e){
+      alert("データの保存に失敗しました。端末の保存容量が不足している可能性があります。不要なデータの整理や、バックアップの保存をご検討ください。");
+      return false;
+    }
   }
 };
 
@@ -552,29 +575,47 @@ function renderDataWarningBanner(){
 }
 
 function render(){
-  // 画面の描画前に必ず一度データを読み込み、破損の有無を確定させてから警告バナーを判定する
-  DB.getUsers();
-  DB.getRecords();
+  try{
+    // 画面の描画前に必ず一度データを読み込み、破損の有無を確定させてから警告バナーを判定する
+    DB.getUsers();
+    DB.getRecords();
 
-  const app = document.getElementById("app");
-  document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));
-  let html = renderDataWarningBanner();
-  if(state.screen==="list"){
-    html += renderUserList();
-    app.innerHTML = html;
-    bindUserListEvents();
-  } else if(state.screen==="userForm"){
-    html += renderUserForm(state.editUserId);
-    app.innerHTML = html;
-    bindUserFormEvents();
-  } else if(state.screen==="measureForm"){
-    html += renderMeasureForm(state.selectedUserId, state.editRecordId);
-    app.innerHTML = html;
-    bindMeasureFormEvents();
-  } else if(state.screen==="history"){
-    html += renderHistory(state.selectedUserId);
-    app.innerHTML = html;
-    bindHistoryEvents();
+    const app = document.getElementById("app");
+    document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));
+    if(state.screen==="list"){
+      document.getElementById("nav-list-btn").classList.add("active");
+    }
+    let html = renderDataWarningBanner();
+    if(state.screen==="list"){
+      html += renderUserList();
+      app.innerHTML = html;
+      bindUserListEvents();
+    } else if(state.screen==="userForm"){
+      html += renderUserForm(state.editUserId);
+      app.innerHTML = html;
+      bindUserFormEvents();
+    } else if(state.screen==="measureForm"){
+      html += renderMeasureForm(state.selectedUserId, state.editRecordId);
+      app.innerHTML = html;
+      bindMeasureFormEvents();
+    } else if(state.screen==="history"){
+      html += renderHistory(state.selectedUserId);
+      app.innerHTML = html;
+      bindHistoryEvents();
+    }
+  }catch(e){
+    // 予期しないエラーが起きても画面が真っ白のまま止まらないよう、案内を表示して一覧に戻れるようにする
+    const app = document.getElementById("app");
+    app.innerHTML = `
+      <div class="card">
+        <div class="error-box">画面の表示中に問題が発生しました。お手数ですが、いったん利用者一覧に戻ってやり直してください。改善しない場合は、バックアップを保存のうえ、管理者にご確認ください。</div>
+        <button class="btn btn-primary" id="btn-error-back-list">利用者一覧に戻る</button>
+      </div>
+    `;
+    const backBtn = document.getElementById("btn-error-back-list");
+    if(backBtn){
+      backBtn.onclick = ()=>navigate("list");
+    }
   }
 }
 
@@ -603,19 +644,25 @@ function renderUserList(searchTerm=""){
       </tr>`;
   }).join("");
 
+  const lastBackupAt = DB.getLastBackupAt();
+  const lastBackupText = lastBackupAt ? formatBackupDate(lastBackupAt) : "まだ保存していません";
+
   return `
+    <div class="card">
+      <h2 style="margin-top:0;">データのバックアップ</h2>
+      <p class="muted">このアプリは端末内にデータを保存します。端末や利用環境によってデータが消えることがあるため、こまめにバックアップの保存をお願いします。</p>
+      <p style="margin:10px 0;">最終バックアップ：<strong>${escapeHtml(lastBackupText)}</strong></p>
+      <div class="row">
+        <button class="btn btn-primary btn-sm" id="btn-backup-save">バックアップを保存する</button>
+        <button class="btn btn-flat btn-sm" id="btn-backup-restore">バックアップから復元する</button>
+        <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none;">
+      </div>
+    </div>
+
     <div class="card">
       <div class="row" style="justify-content:space-between;">
         <h2 style="margin:0;">利用者一覧</h2>
         <button class="btn btn-primary" id="btn-new-user">＋ 利用者を新規登録</button>
-      </div>
-
-      <div class="warn-box" style="margin-top:16px;">このアプリは端末内にデータを保存します。端末やブラウザの状態によってデータが消える可能性があるため、定期的にバックアップを保存してください。</div>
-
-      <div class="row" style="margin-bottom:6px;">
-        <button class="btn btn-secondary btn-sm" id="btn-backup-save">バックアップを保存</button>
-        <button class="btn btn-flat btn-sm" id="btn-backup-restore">バックアップから復元</button>
-        <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none;">
       </div>
 
       <div class="search-box" style="margin-top:16px;">
@@ -720,7 +767,63 @@ function downloadBackup(){
   a.click();
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  DB.setLastBackupAt(new Date().toISOString());
+  navigate("list");
   showToast("バックアップを保存しました");
+}
+
+// CSV用に、カンマ・改行・ダブルクォートを含む値を安全にエスケープする
+function csvField(value){
+  const str = (value===null || value===undefined) ? "" : String(value);
+  if(/[",\n\r]/.test(str)){
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+// 利用者ごとの測定データをCSV形式で出力する（Excelでも文字化けしないようUTF-8 BOM付き）
+function downloadUserRecordsCsv(userId){
+  const u = DB.getUser(userId);
+  if(!u) return;
+  const records = DB.getRecordsForUser(userId).slice()
+    .sort((a,b)=> DB.recordOrderKey(a) < DB.recordOrderKey(b) ? -1 : (DB.recordOrderKey(a) > DB.recordOrderKey(b) ? 1 : 0)); // 古い順
+
+  if(records.length===0){
+    alert("この利用者にはまだ測定記録がありません。");
+    return;
+  }
+
+  const headers = ["測定日","握力右(kg)","握力左(kg)","長座体前屈(cm)","開眼片脚立位右(秒)","開眼片脚立位左(秒)","TUG(秒)","体重(kg)","BMI","測定時の様子・注意点","評価コメント"];
+  const lines = [headers.map(csvField).join(",")];
+
+  records.forEach(r=>{
+    const row = [
+      r.date,
+      r.values.gripRight,
+      r.values.gripLeft,
+      r.values.sitReach,
+      r.values.balanceRight,
+      r.values.balanceLeft,
+      r.values.tug,
+      r.values.weight,
+      r.values.bmi,
+      r.memo || "",
+      r.finalComment || ""
+    ];
+    lines.push(row.map(csvField).join(","));
+  });
+
+  const csvContent = "\uFEFF" + lines.join("\r\n");
+  const blob = new Blob([csvContent], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `体力測定データ_${u.name}_${getLocalDateString()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  showToast("CSVファイルを出力しました");
 }
 
 // 復元するJSONの検証：JSONとして読めるか（呼び出し元でJSON.parse済み）、
@@ -1231,8 +1334,8 @@ function renderHistory(userId){
         <textarea id="final-comment-input">${escapeHtml(latest.finalComment||"")}</textarea>
       </div>
       <div class="row no-print">
-        <button class="btn btn-primary" id="btn-save-comment">コメントを保存</button>
-        <button class="btn btn-flat" id="btn-regen-comment">コメントを再作成</button>
+        <button class="btn btn-primary" id="btn-save-comment">コメントを保存する</button>
+        <button class="btn btn-flat" id="btn-regen-comment">コメントを作り直す</button>
       </div>
       <div class="print-only-comment" id="print-final-comment"></div>
     </div>
@@ -1258,7 +1361,7 @@ function renderHistory(userId){
         <h2 style="margin:0;">測定結果・履歴 － ${escapeHtml(u.name)} 様</h2>
         <div class="row">
           <button class="btn btn-secondary btn-sm" id="btn-back-list">利用者一覧へ</button>
-          <button class="btn btn-primary" id="btn-new-measure">＋ 新規測定を入力</button>
+          <button class="btn btn-primary" id="btn-new-measure">＋ 新しい測定を記録する</button>
         </div>
       </div>
       <p class="muted no-print">要介護度：${escapeHtml(u.careLevel||"―")}　身長：${u.height?u.height+"cm":"未登録"}</p>
@@ -1268,7 +1371,8 @@ function renderHistory(userId){
         <input type="text" id="facility-name-input" value="${escapeHtml(facilityName)}" placeholder="例：〇〇デイサービスセンター">
       </div>
       <div class="row no-print">
-        <button class="btn btn-secondary" id="btn-print">印刷する</button>
+        <button class="btn btn-secondary" id="btn-print">この結果を印刷する</button>
+        <button class="btn btn-flat" id="btn-csv-export">測定データをCSVで出力する</button>
       </div>
 
       ${compareHtml}
@@ -1315,6 +1419,11 @@ function bindHistoryEvents(){
       syncPrintArtifacts();
       setTimeout(()=>window.print(), 50);
     };
+  }
+
+  const csvBtn = document.getElementById("btn-csv-export");
+  if(csvBtn){
+    csvBtn.onclick = ()=> downloadUserRecordsCsv(state.selectedUserId);
   }
 
   // 評価コメント
@@ -1586,6 +1695,8 @@ function escapeHtml(str){
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[s]));
 }
+
+document.getElementById("nav-list-btn").onclick = ()=> navigate("list");
 
 /* 起動 */
 render();
